@@ -67,8 +67,17 @@ function renderFilterBar() {
 }
 
 function renderStats() {
-  const active = state.todos.filter(t => !t.done).length;
+  const total  = state.todos.length;
+  const done   = state.todos.filter(t => t.done).length;
+  const active = total - done;
+
   document.getElementById('stats').textContent = `${active} task${active !== 1 ? 's' : ''} left`;
+
+  const bar = document.getElementById('progress-bar');
+  if (bar) bar.style.width = (total === 0 ? 0 : Math.round((done / total) * 100)) + '%';
+
+  const countEl = document.getElementById('task-count');
+  if (countEl) countEl.textContent = total === 0 ? '' : `${done} / ${total} done`;
 }
 
 function render() {
@@ -85,7 +94,7 @@ function initHandlers() {
   // Options link
   document.getElementById('options-link').addEventListener('click', (e) => {
     e.preventDefault();
-    chrome.runtime.openOptionsPage();
+    window.open('options.html');
   });
 }
 
