@@ -10,18 +10,30 @@
     :root {
       --navy:        #1C2340;
       --navy-dark:   #0f1729;
-      --green:       #00B140;
-      --green-dark:  #009933;
+      --green:       #007a33;
+      --green-dark:  #00662a;
       --text:        #1C2340;
       --text-muted:  #6b7280;
       --white:       #ffffff;
-      --done-text:   #9ca3af;
-      --high:        #ef4444;
-      --medium:      #f59e0b;
-      --low:         #10b981;
+      --done-text:   #4b5563;
+      --high:        #991b1b;
+      --medium:      #92400e;
+      --low:         #065f46;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     body {
       min-height: 100vh;
@@ -56,7 +68,7 @@
     }
 
     .brand-tagline {
-      color: rgba(255, 255, 255, 0.35);
+      color: rgba(255, 255, 255, 0.82);
       font-size: 13px;
       font-weight: 500;
       letter-spacing: 0.5px;
@@ -92,7 +104,7 @@
     }
 
     #task-count {
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.82);
       font-size: 12px;
       font-weight: 500;
     }
@@ -156,6 +168,11 @@
     #btn-add:hover  { background: var(--green-dark); }
     #btn-add:active { transform: scale(0.96); }
 
+    #btn-add:focus-visible {
+      outline: 3px solid rgba(0, 177, 64, 0.35);
+      outline-offset: 2px;
+    }
+
     /* ── Filter Bar ──────────────────────────────────────────── */
     #filter-bar {
       display: flex;
@@ -186,6 +203,11 @@
     .filter-btn:not(.active):hover {
       background: #f3f4f6;
       color: var(--text);
+    }
+
+    .filter-btn:focus-visible {
+      outline: 2px solid rgba(28, 35, 64, 0.35);
+      outline-offset: 2px;
     }
 
     /* ── Stats ───────────────────────────────────────────────── */
@@ -227,15 +249,20 @@
 
     .todo-item:last-child { border-bottom: none; }
     .todo-item:hover { background: #f9fafb; }
-    .todo-item.done { opacity: 0.65; }
+    .todo-item.done { opacity: 1; }
 
     /* ── Checkbox ────────────────────────────────────────────── */
     .todo-checkbox {
-      width: 17px;
-      height: 17px;
+      width: 24px;
+      height: 24px;
       accent-color: var(--green);
       cursor: pointer;
       flex-shrink: 0;
+    }
+
+    .todo-checkbox:focus-visible {
+      outline: 2px solid rgba(0, 177, 64, 0.4);
+      outline-offset: 2px;
     }
 
     /* ── Todo Text ───────────────────────────────────────────── */
@@ -270,19 +297,28 @@
     .btn-delete {
       background: none;
       border: none;
-      color: #d1d5db;
+      color: #6b7280;
       cursor: pointer;
-      padding: 4px 6px;
+      min-width: 24px;
+      min-height: 24px;
+      padding: 4px;
       border-radius: 6px;
       font-size: 14px;
       line-height: 1;
-      opacity: 0;
+      opacity: 0.7;
       transition: color 0.15s, opacity 0.15s, background 0.15s;
       flex-shrink: 0;
     }
 
     .btn-delete:hover { color: #ef4444; background: #fee2e2; }
-    .todo-item:hover .btn-delete { opacity: 1; }
+    .todo-item:hover .btn-delete,
+    .todo-item:focus-within .btn-delete,
+    .btn-delete:focus-visible { opacity: 1; }
+
+    .btn-delete:focus-visible {
+      outline: 2px solid rgba(239, 68, 68, 0.35);
+      outline-offset: 1px;
+    }
 
     /* ── AI Priority Button ──────────────────────────────────── */
     .btn-ai {
@@ -371,10 +407,16 @@
 
     footer a:hover { color: var(--navy); }
 
+    footer a:focus-visible {
+      outline: 2px solid rgba(28, 35, 64, 0.35);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
     /* ── Caption ─────────────────────────────────────────────── */
     .caption {
       margin-top: 20px;
-      color: rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.72);
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.3px;
@@ -395,11 +437,19 @@
         <span id="task-count"></span>
       </div>
       <div class="progress-wrap">
-        <div id="progress-bar"></div>
+        <div
+          id="progress-bar"
+          role="progressbar"
+          aria-label="Completed tasks"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        ></div>
       </div>
     </div>
 
     <form id="add-form">
+      <label for="todo-input" class="sr-only">Task description</label>
       <input
         id="todo-input"
         type="text"
@@ -411,9 +461,9 @@
     </form>
 
     <div id="filter-bar">
-      <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="active">Active</button>
-      <button class="filter-btn" data-filter="done">Done</button>
+      <button class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+      <button class="filter-btn" data-filter="active" aria-pressed="false">Active</button>
+      <button class="filter-btn" data-filter="done" aria-pressed="false">Done</button>
     </div>
 
     <div id="stats">0 tasks left</div>
