@@ -36,6 +36,12 @@ Use these roles to keep AI-assisted work focused and consistent while building t
 - Produces a reviewer-ready PR package with title, description, testing evidence, risk notes, and rollout/rollback details.
 - Aligns with UK government delivery guidance (GOV.UK Service Standard, GDS Service Manual, and Technology Code of Practice).
 
+### GitHub Issue Spec Implementation Skill
+- Location: `.agents/skills/issue-spec-implementation/skill.md`
+- Use when asked to fetch a spec/change request from GitHub issues and implement it.
+- Supports both explicit issue numbers and plain-language change requests.
+- Targets issues in `KainosSoftwareLtd/ai-assisted-coding-workshops-project` and maps acceptance criteria to code changes and verification.
+
 ## Working Rules
 
 - Keep changes small and explain why each change is needed.
