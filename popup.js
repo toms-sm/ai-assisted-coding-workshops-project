@@ -53,19 +53,47 @@ function addTodo(text) {
 }
 
 function toggleTodo(id) {
+  const todo = state.todos.find(item => item.id === id);
+  if (!todo) return;
+
+  todo.done = !todo.done;
+  saveState();
+  render();
 }
 
 function deleteTodo(id) {
+  const initialLength = state.todos.length;
+  state.todos = state.todos.filter(item => item.id !== id);
+  if (state.todos.length === initialLength) return;
+
+  saveState();
+  render();
 }
 
 function setFilter(filter) {
+  state.filter = filter;
+  render();
 }
 
 function getVisibleTodos() {
+  if (state.filter === 'active') {
+    return state.todos.filter(todo => !todo.done);
+  }
+
+  if (state.filter === 'done') {
+    return state.todos.filter(todo => todo.done);
+  }
+
   return state.todos;
 }
 
 function setPriority(id, priority) {
+  const todo = state.todos.find(item => item.id === id);
+  if (!todo) return;
+
+  todo.priority = priority;
+  saveState();
+  render();
 }
 
 // ── Render ─────────────────────────────────────────────────────
@@ -81,7 +109,6 @@ function renderList() {
       <button class="btn-delete" title="Delete">✕</button>
     </li>
   `).join('');
-  // TODO Task 2: wire checkbox and delete button via event delegation in initHandlers()
 }
 
 function renderEmptyState() {
@@ -90,6 +117,10 @@ function renderEmptyState() {
 }
 
 function renderFilterBar() {
+  const buttons = document.querySelectorAll('#filter-bar .filter-btn');
+  buttons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.filter === state.filter);
+  });
 }
 
 function renderStats() {
@@ -124,6 +155,29 @@ function initHandlers() {
     addTodo(input.value);
     input.value = '';
     input.focus();
+  });
+
+  document.getElementById('filter-bar').addEventListener('click', (e) => {
+    const button = e.target.closest('.filter-btn');
+    if (!button) return;
+    setFilter(button.dataset.filter);
+  });
+
+  document.getElementById('todo-list').addEventListener('click', (e) => {
+    const todoItem = e.target.closest('.todo-item');
+    if (!todoItem) return;
+
+    const id = todoItem.dataset.id;
+    if (!id) return;
+
+    if (e.target.matches('.btn-delete')) {
+      deleteTodo(id);
+      return;
+    }
+
+    if (e.target.matches('.todo-checkbox')) {
+      toggleTodo(id);
+    }
   });
 
   // Options link
