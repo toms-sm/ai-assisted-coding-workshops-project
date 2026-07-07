@@ -9,6 +9,16 @@ const state = {
 const VALID_FILTERS = new Set(['all', 'active', 'done']);
 const VALID_PRIORITIES = new Set(['high', 'medium', 'low']);
 
+function announce(message) {
+  const announcer = document.getElementById('sr-announcer');
+  if (!announcer) return;
+
+  announcer.textContent = '';
+  requestAnimationFrame(() => {
+    announcer.textContent = message;
+  });
+}
+
 function normalizeTodo(todo) {
   if (!todo || typeof todo !== 'object') return null;
 
@@ -90,6 +100,7 @@ function addTodo(text) {
 
   saveState();
   render();
+  announce(`Task added: ${trimmed}`);
 }
 
 function toggleTodo(id) {
@@ -99,21 +110,29 @@ function toggleTodo(id) {
   todo.done = !todo.done;
   saveState();
   render();
+  announce(`Task ${todo.done ? 'completed' : 'marked active'}: ${todo.text}`);
 }
 
 function deleteTodo(id) {
+  const todo = state.todos.find(item => item.id === id);
   const initialLength = state.todos.length;
   state.todos = state.todos.filter(item => item.id !== id);
   if (state.todos.length === initialLength) return;
 
   saveState();
   render();
+  if (todo) {
+    announce(`Task deleted: ${todo.text}`);
+  }
 }
 
 function setFilter(filter) {
   if (!VALID_FILTERS.has(filter)) return;
   state.filter = filter;
   render();
+
+  const visibleCount = getVisibleTodos().length;
+  announce(`Filter set to ${filter}. ${visibleCount} task${visibleCount !== 1 ? 's' : ''} shown.`);
 }
 
 function getVisibleTodos() {
