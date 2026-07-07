@@ -6,6 +6,48 @@ const state = {
   aiLoading: false,
 };
 
+const VALID_FILTERS = new Set(['all', 'active', 'done']);
+const VALID_PRIORITIES = new Set(['high', 'medium', 'low']);
+
+function announce(message) {
+  const announcer = document.getElementById('sr-announcer');
+  if (!announcer) return;
+
+  announcer.textContent = '';
+  requestAnimationFrame(() => {
+    announcer.textContent = message;
+  });
+}
+
+function normalizeTodo(todo) {
+  if (!todo || typeof todo !== 'object') return null;
+
+  const rawId = todo.id;
+  const id = typeof rawId === 'string' ? rawId : String(rawId ?? '');
+  if (!id) return null;
+
+  const text = typeof todo.text === 'string' ? todo.text.trim() : '';
+  if (!text) return null;
+
+  const done = typeof todo.done === 'boolean' ? todo.done : false;
+
+  const createdAt = typeof todo.createdAt === 'string' && !Number.isNaN(Date.parse(todo.createdAt))
+    ? todo.createdAt
+    : new Date().toISOString();
+
+  const priority = typeof todo.priority === 'string' && VALID_PRIORITIES.has(todo.priority)
+    ? todo.priority
+    : null;
+
+  return {
+    id,
+    text,
+    done,
+    createdAt,
+    priority,
+  };
+}
+
 // ── Persistence ────────────────────────────────────────────────
 
 function loadState() {
@@ -18,7 +60,15 @@ function loadState() {
 
   try {
     const parsed = JSON.parse(raw);
-    state.todos = Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) {
+      state.todos = [];
+      render();
+      return;
+    }
+
+    state.todos = parsed
+      .map(normalizeTodo)
+      .filter((todo) => todo !== null);
   } catch {
     state.todos = [];
   }
@@ -50,6 +100,7 @@ function addTodo(text) {
 
   saveState();
   render();
+  announce(`Task added: ${trimmed}`);
 }
 
 function toggleTodo(id) {
@@ -59,20 +110,29 @@ function toggleTodo(id) {
   todo.done = !todo.done;
   saveState();
   render();
+  announce(`Task ${todo.done ? 'completed' : 'marked active'}: ${todo.text}`);
 }
 
 function deleteTodo(id) {
+  const todo = state.todos.find(item => item.id === id);
   const initialLength = state.todos.length;
   state.todos = state.todos.filter(item => item.id !== id);
   if (state.todos.length === initialLength) return;
 
   saveState();
   render();
+  if (todo) {
+    announce(`Task deleted: ${todo.text}`);
+  }
 }
 
 function setFilter(filter) {
+  if (!VALID_FILTERS.has(filter)) return;
   state.filter = filter;
   render();
+
+  const visibleCount = getVisibleTodos().length;
+  announce(`Filter set to ${filter}. ${visibleCount} task${visibleCount !== 1 ? 's' : ''} shown.`);
 }
 
 function getVisibleTodos() {
@@ -91,6 +151,8 @@ function setPriority(id, priority) {
   const todo = state.todos.find(item => item.id === id);
   if (!todo) return;
 
+  if (priority !== null && !VALID_PRIORITIES.has(priority)) return;
+
   todo.priority = priority;
   saveState();
   render();
@@ -101,14 +163,47 @@ function setPriority(id, priority) {
 function renderList() {
   const list = document.getElementById('todo-list');
   const visible = getVisibleTodos();
-  list.innerHTML = visible.map(todo => `
-    <li class="todo-item${todo.done ? ' done' : ''}" data-id="${todo.id}">
-      <input class="todo-checkbox" type="checkbox" ${todo.done ? 'checked' : ''} />
-      <span class="todo-text">${todo.text}</span>
-      ${todo.priority ? `<span class="priority-badge priority-${todo.priority}">${todo.priority}</span>` : ''}
-      <button class="btn-delete" title="Delete">✕</button>
-    </li>
-  `).join('');
+  list.textContent = '';
+
+  const fragment = document.createDocumentFragment();
+
+  visible.forEach((todo) => {
+    const item = document.createElement('li');
+    item.className = `todo-item${todo.done ? ' done' : ''}`;
+    item.dataset.id = todo.id;
+
+    const checkbox = document.createElement('input');
+    checkbox.className = 'todo-checkbox';
+    checkbox.type = 'checkbox';
+    checkbox.checked = todo.done;
+    checkbox.setAttribute('aria-label', `${todo.done ? 'Mark as incomplete' : 'Mark as complete'}: ${todo.text}`);
+
+    const text = document.createElement('span');
+    text.className = 'todo-text';
+    text.textContent = todo.text;
+
+    item.appendChild(checkbox);
+    item.appendChild(text);
+
+    if (todo.priority) {
+      const badge = document.createElement('span');
+      badge.className = `priority-badge priority-${todo.priority}`;
+      badge.textContent = todo.priority;
+      item.appendChild(badge);
+    }
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.title = 'Delete';
+    deleteBtn.setAttribute('aria-label', `Delete task: ${todo.text}`);
+    deleteBtn.textContent = '✕';
+
+    item.appendChild(deleteBtn);
+    fragment.appendChild(item);
+  });
+
+  list.appendChild(fragment);
 }
 
 function renderEmptyState() {
@@ -119,7 +214,9 @@ function renderEmptyState() {
 function renderFilterBar() {
   const buttons = document.querySelectorAll('#filter-bar .filter-btn');
   buttons.forEach((button) => {
-    button.classList.toggle('active', button.dataset.filter === state.filter);
+    const isActive = button.dataset.filter === state.filter;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
   });
 }
 
@@ -131,7 +228,12 @@ function renderStats() {
   document.getElementById('stats').textContent = `${active} task${active !== 1 ? 's' : ''} left`;
 
   const bar = document.getElementById('progress-bar');
-  if (bar) bar.style.width = (total === 0 ? 0 : Math.round((done / total) * 100)) + '%';
+  if (bar) {
+    const progress = total === 0 ? 0 : Math.round((done / total) * 100);
+    bar.style.width = `${progress}%`;
+    bar.setAttribute('aria-valuenow', String(progress));
+    bar.setAttribute('aria-valuetext', `${done} of ${total} tasks completed`);
+  }
 
   const countEl = document.getElementById('task-count');
   if (countEl) countEl.textContent = total === 0 ? '' : `${done} / ${total} done`;
